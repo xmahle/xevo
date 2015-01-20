@@ -6,3 +6,5 @@ This is a demo/playground for Bind.JS Widgets.
 - Create: Your own hilarious/or useful Widgets.
 
 You can find BindJS from [link](https://github.com/xmahle/bindjs)
+
+This site can be found from [link](http://marko.kurjonen.fi/xevo)
