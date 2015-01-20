@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link type="text/css" rel="stylesheet" href="./css/loader.css"></link>
+    <title>XevoLve</title>
+
+    <script>
+        window.$b = window.$b||{};
+        window.$b.DEBUG = true;
+    </script>
+
+    <script src="./js/head.load.js"></script>
+</head>
+<body id="xevo" data-name="xevo" data-object="XevoSite">
+<div id="loadingScreen">
+
+    <div class="loadProgressContainer">
+        <div class="progressbar">
+            <div class="bar"></div>
+        </div>
+        <p class="loadProgressPercent"></p>
+        <div id="status">Initializing...</div>
+    </div>
+    <div class="loadingFooter"><a href="http://marko.kurjonen.fi/bindjs" target="_empty">Powered by BindJs</a></div>
+</div>
+<script>
+    head.ready(document, function() {
+        head.load(
+            ["//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.js", "../../bindjs/src/bind.js", "../../bindjs/src/bind.Element.js", "../../bindjs/src/bind.Site.js", "./js/bind.Widget.js", "./js/xevoSite.js"],
+            function() {
+                // Mandatory javascripts for bind.js loaded!
+                $(document).ready($b.OP.init);
+            }
+        );
+    });
+</script>
+</body>
+</html>

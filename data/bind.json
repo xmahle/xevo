@@ -1,0 +1,41 @@
+{
+    "paths": {
+        "scripts": "js/",
+        "styles": "css/",
+        "images": "img/",
+        "templates": "data/",
+        "variables": "data/",
+        "fonts": "fonts/"
+    },
+    "layout": "desktop-html",
+    "vars": "lang-json",
+    "defaultLanguage": "en",
+    "languages": [
+        "fi",
+        "en"
+    ],
+    "preload": {
+        "scripts": {
+            "tmpl": "tmpl.min.js",
+            "bootstrap": "bootstrap.min.js",
+            "meny": "meny.js",
+            "codemirror": "codemirror.js"
+        },
+        "styles": {
+            "bootstrap": "bootstrap.min.css",
+            "bs-theme": "bootstrap-theme.min.css",
+            "meny": "meny.css",
+            "codemirror": "codemirror.css",
+            "site": "xevo.css"
+        },
+        "images": {
+            "background": "nova-electric-bright-blue.jpg"
+        },
+        "templates": {
+            "layout": "desktop.html"
+        },
+        "variables": {
+            "vars": "lang.json"
+        }
+    }
+}
