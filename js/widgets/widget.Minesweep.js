@@ -18,7 +18,7 @@
         id: "Minesweep",
         title: "Minesweep"
     };
-
+    p.widget = 'Minesweep';
     p.css = '.widget-Minesweep td {font-size: 2px;}';//.widget-Minesweep img {border-top-width: 0px;border-right-width: 0px;border-bottom-width: 0px;border-left-width: 0px;border-top-style: solid;border-right-style: solid;border-bottom-style: solid;border-left-style: solid;height: 16px;width: 16px;}';
 
     p.template = '';

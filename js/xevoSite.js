@@ -11,7 +11,28 @@
     p.contentPath = "data/";
     p.settingsFilename = "bind.json";
     p.widgetsPath = "";
-    p.widgetPos = 50;
+    // Default widget settings
+    p.widgetSettings = {
+        widget: '',
+        settings: {
+            id: '',
+            title: 'Unnamed',
+            description: ''
+        },
+        position: {x:50,y:50}
+    };
+    // Desktop settings of new user
+    p.initialDesktop = {
+        YourClock: {
+            widget: 'Clock',
+            settings: {
+                id: 'YourClock',
+                title: 'Your Clock',
+                description: 'Initial Clock Widget'
+            },
+            position: {left:100,top:100}
+        }
+    };
     p.localWidgets = null;
 
     p.initialize = function() {
@@ -28,12 +49,23 @@
 
         _self.Site_elementCreated();
 
+        // Get desktop setup from localStorage
+        _self.personalDesktop = _self.storage.get('personalDesktop');
+
+        if(!_self.personalDesktop) {
+            _self.personalDesktop = _self.initialDesktop;
+
+            _self.storage.set('personalDesktop', _self.personalDesktop);
+        }
+
         // Setup widget storage
         _self.localWidgets = _self.storage.get('localWidgets');
+
         if(!_self.localWidgets) {
             _self.storage.set('localWidgets',{
                 // Temporary 'Startup' widget
                 Empty: {
+                    widget: 'Empty',
                     settings: {
                         id: 'Empty',
                         title: 'Empty Widget',
@@ -47,6 +79,9 @@
 
         // Global events
         $(window).on('resize', function(){_self.desktopResize();});
+        // Attach on unload event for cleanup and desktop save
+        $(window).on('unload', function(){_self.unloadSiteEvent();});
+
     };
 
     // Override
@@ -77,6 +112,10 @@
         // Menu init
         _self.gJQ('.widget-launch').on('click', function() {_self.launchWidget($(this).data('widget'));});
 
+        // Load desktop
+        for(var w in _self.personalDesktop) {
+            _self.launchWidget(_self.personalDesktop[w].widget, _self.personalDesktop[w]);
+        }
     };
 
     /***
@@ -99,6 +138,15 @@
      */
     p.launchWidget = function(widget, attributes) {
         var _self = this;
+
+        // Merge widget settings
+        attributes = $.extend(true,{},_self.widgetSettings, attributes);
+
+        // Make sure id is set
+        if(attributes.settings.id == '') {
+            attributes.settings.id = widget +'-'+ Math.floor(Math.random()*1000);
+            attributes.settings.title = widget + 'Widget';
+        }
 
         var widgetStorageObject = _self.getWidgetStorageObject(widget);
         if(widgetStorageObject) {
@@ -124,6 +172,24 @@
         _self.meny.close();
     };
 
+    /**
+     * Updates widget storage object
+     * @param widgetId String
+     * @param attributes Object
+     * @returns {boolean}
+     */
+    p.updateWidgetStorageObject = function(widgetId, attributes) {
+        var _self = this;
+        if(_self.localWidgets[widgetId]) {
+
+            var newAttributes = $.extend(true, {},_self.localWidgets[widgetId], attributes);
+            _self.localWidgets[widgetId] = newAttributes;
+
+        } else  {
+            _self.localWidgets[widgetId] = attributes;
+        }
+        return true;
+    };
     /***
      * Retrieves the storage object of the Widget (code and settings)
      * - TODO: Multiple storage options?
@@ -141,6 +207,45 @@
     };
 
     /***
+     * Creates or updates personal desktop widget
+     * @param widgetId String id of the widget (old id, if the id has been changed!)
+     * @param attributes Object attributes to save
+     */
+    p.updateWidgetDesktopStorage = function(widgetId, attributes) {
+        var _self = this;
+        var newAttributes = {};
+        if(_self.personalDesktop[widgetId]) {
+            // Merge objects deeply
+            newAttributes = $.extend(true, {}, _self.personalDesktop[widgetId], attributes);
+
+            // Check if id has changed
+            if(widgetId != newAttributes.settings.id) {
+                // Remove old id..
+                _self.removeWidgetDesktopStorage(widgetId);
+            }
+            // Create / update
+            _self.personalDesktop[newAttributes.settings.id] = newAttributes;
+
+        } else {
+            // New widget created -> save it
+            _self.personalDesktop[widgetId] = attributes;
+        }
+    };
+    /***
+     * Remove widget from personal desktop object
+     * @param widgetId String
+     * @returns {boolean} Succeeded?
+     */
+    p.removeWidgetDesktopStorage = function(widgetId) {
+        var _self = this;
+
+        if(!_self.personalDesktop[widgetId]) {
+            return false;
+        }
+        return delete _self.personalDesktop[widgetId];
+    };
+
+    /***
      * Create new widget, widget code must be already load/eval
      * @param widget Name of the Widget
      * @param attributes Widget attributes (if needed)
@@ -150,16 +255,10 @@
         var _self = this;
 
         // Create the html and append to .desktop
-        var widgetName = widget + _self.widgetPos;
+        var widgetName = attributes.settings.id;
         var attributesHtml = (attributes ? ' data-attributes=\''+ JSON.stringify(attributes) +'\'' : '');
-        var elem = '<div class="widget widget-'+ widget +'" style="top: 50px;left: '+ _self.widgetPos +'px" data-object="Widget'+ widget +'" data-name="'+ widgetName +'"'+ attributesHtml +'></div>';
+        var elem = '<div class="widget widget-'+ widget +'" style="left:'+ attributes.position.left +'px;top:'+attributes.position.top +'px;" data-object="Widget'+ widget +'" data-name="'+ widgetName +'"'+ attributesHtml +'></div>';
         $(elem).appendTo(_self.gJQ('.desktop')).on('mousedown', function(){_self.bringFront($(this).data('name'));});
-
-        // TODO: Set Widget position -> Make this right
-        _self.widgetPos += 40;
-        if(_self.widgetPos > $(window).width()) {
-            _self.widgetPos = 50;
-        }
 
         // Move newly created widget to the front
         _self.bringFront(widgetName);
@@ -173,6 +272,13 @@
             $('.desktop div[data-name="'+ widgetName +'"]').remove();
             return false;
         }
+
+        // Update default widget class name
+        attributes.widget = widget;
+
+        // Save widget to desktopStorage
+        _self.updateWidgetDesktopStorage(widgetName, attributes);
+
         // Return newly created widget
         return $b.OM.find(widgetName);
     };
@@ -199,8 +305,12 @@
         var _self = this;
     };
 
+    /***
+     * Creates left side meny object
+     */
     p.initMeny = function() {
         var _self = this;
+
         _self.meny = Meny.create({
             // The element that will be animated in from off screen
             menuElement: document.querySelector( '.meny' ),
@@ -241,32 +351,20 @@
             // Use touch swipe events to open/close
             touch: true
         });
+    };
 
-        /*
-         meny.addEventListener( 'open', function() {
+    /**
+     * Called when browser is closed
+     * - Save personal desktop object
+     */
+    p.unloadSiteEvent = function() {
+        var _self = this;
 
-         // do something on open
+        // Save desktop
+        _self.storage.set('personalDesktop', _self.personalDesktop);
+        // Save Widgets
+        _self.storage.set('localWidgets', _self.localWidgets);
 
-         } );
-
-         meny.addEventListener( 'close', function() {
-
-         // do something on close
-
-         } );
-
-         meny.addEventListener( 'opened', function() {
-
-         // do something right after meny is opened and transitions finished
-
-         } );
-
-         meny.addEventListener( 'closed', function() {
-
-         // do something right after meny is closed and transitions finished
-
-         } );
-         */
     };
 
     p.toString = function() {

@@ -17,16 +17,14 @@
         id: "CodePanel",
         title: "Code your own Widget"
     };
+    p.widget = 'CodePanel';
     p.css = '.fileToLoad{display:none!important;cursor: pointer;width:20px;height:20px;opacity: 0; -moz-opacity: 0;filter:progid:DXImageTransform.Microsoft.Alpha(opacity=0)}.CodePanel-toolbar{margin: 3px;}.widget-CodePanel{resize: both;}.CodeMirror {min-height: 200px;height: auto;overflow: hidden;}';
     p.editor = null;
     p.template = '<div class="btn-toolbar CodePanel-toolbar" role="toolbar" ><div class="btn-group btn-group-xs" role="group"><button type="button" class="btn btn-default btn-new" title="New [Ctrl+N]"><i class="fa fa-file-o"></i></button><button type="button" class="btn btn-default btn-open" title="Open [Ctrl+O]"><i class="fa fa-folder-open-o"></i></button><button type="button" class="btn btn-default  btn-save" title="Save [Ctrl+S]"><i class="fa fa-floppy-o"></i></button></div><div class="btn-group btn-group-xs" role="group"><button type="button" class="btn btn-default btn-export" title="Export"><i class="fa fa-upload"></i></button><input type="file" class="btn fileToLoad" /><button type="button" class="btn btn-default btn-import" title="Import"><i class="fa fa-download"></i></button></div><div class="btn-group btn-group-xs" role="group"><button type="button" class="btn btn-default btn-settings" title="Settings"><i class="fa fa-cogs"></i></button></div><div class="btn-group btn-group-xs pull-right" role="group"><button type="button" class="btn btn-default btn-run" title="Run [Ctrl+Enter]"><i class="fa fa-play"></i></button></div></div>';
-    p.defaultContent = '(function() {\n var WidgetNewEmpty = function () {\nthis.initialize();\n};\nvar p = WidgetNewEmpty.prototype = new $b.Widget();\np.template = "New empty Widget contents.";\np.Widget_initialize = p.initialize;\np.initialize = function() {\nthis.Widget_initialize();\n};\np.toString = function() {\n    return "WidgetNewEmpty["+ this._name +"]";\n};\n$b.WidgetNewEmpty = WidgetNewEmpty;\n}());\n\nwindow.site.createWidget("NewEmpty");\n';
 
-    p.widgetSettings = {
-        id: 'NewEmpty',
-        title: 'New Empty Widget',
-        description: ''
-    };
+    p.initialWidget = 'Empty';
+    p.defaultContent = '';
+    p.widgetSettings = {};
 
     p.Widget_initialize = p.initialize;
     p.Widget_elementCreated = p.elementCreated;
@@ -39,8 +37,7 @@
 
         $(this).on("objectCreated", function () {
             head.load([
-                window.site.settings.paths.scripts +"codemirror.javascript.js",
-                '//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css'],
+                window.site.settings.paths.scripts +"codemirror.javascript.js"],
                 function(){_self.elementCreated();});
         });
 
@@ -49,6 +46,14 @@
         var _self = this;
         _self.Widget_elementCreated();
 
+        // Get default widget contents if not set
+        if(_self.defaultContent == '') {
+            var widgetStorageObject = window.site.getWidgetStorageObject(_self.initialWidget);
+            if(widgetStorageObject) {
+                _self.defaultContent = widgetStorageObject.code;
+                _self.widgetSettings = widgetStorageObject.settings;
+            }
+        }
         var _selfDOM = _self.gJQ()[0];
 
         _self.editor = CodeMirror(_selfDOM, {
@@ -113,14 +118,22 @@
     };
     p.buttonSaveClicked = function() {
         var _self = this;
-        console.log("Not implemented!");
+
+        var code = _self.editor.getValue();
+        var attributes = {
+            widget: _self.widgetSettings.id,
+            settings: _self.widgetSettings,
+            code: code
+        };
+
+        window.site.updateWidgetStorageObject(_self.widgetSettings.id, attributes);
     };
     p.buttonExportClicked = function() {
         var _self = this;
 
         var textToWrite = _self.editor.getValue();
         var textFileAsBlob = new Blob([textToWrite], {type:'text/javascript'});
-        var fileNameToSaveAs = 'widget.NewEmpty.js';
+        var fileNameToSaveAs = 'widget.'+ _self.widgetSettings.id +'.js';
 
         var downloadLink = document.createElement("a");
         downloadLink.download = fileNameToSaveAs;
@@ -159,16 +172,31 @@
         _self.gJQ('.CodePanel-toolbar .btn-settings').popover('hide');
     };
 
+    /***
+     * Evals the code and creates widget out of it..
+     * TODO: You should be able to do multiple versions of same object...
+     */
     p.runCode = function() {
         var _self = this;
-        var value = _self.editor.getValue();
+        var code = _self.editor.getValue();
+
+        var objectExists = $b.OM.find(_self.widgetSettings.id);
+        var attributes = {
+            widget: _self.widgetSettings.id,
+            settings: _self.widgetSettings,
+            position: {}
+        };
+
+        if(objectExists != null) {
+            // If exists, save position
+            attributes.position = objectExists.position;
+
+            // Destroy
+            objectExists.destroyObject();
+        }
 
         // Evaluate the code
-        eval(value);
-
-        var attributes = {
-            settings: _self.widgetSettings
-        };
+        eval(code);
 
         // Launch Widget
         window.site.createWidget(_self.widgetSettings.id, attributes);

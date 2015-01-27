@@ -11,13 +11,17 @@
     var p = Widget.prototype = new $b.Element();
 
     p.Element_initialize = p.initialize;
+    p.Element_killObject = p.killObject;
+
     p.template = '';
     p.css = '';
+    p.widget = '';
     p.settings = {
         id: "Unknown",
         title: "Title",
         description: ""
     };
+    p.position = {};
     p.editWidgetId = "CodePanel";
     p.dragEnabled = true;
     p.dragOffset = {};
@@ -27,6 +31,8 @@
         this.Element_initialize();
 
         var _self = this;
+
+        head.load(['//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css']);
 
         $(this).on("objectCreated", function () {
             _self.elementCreated();
@@ -107,27 +113,37 @@
         var _self = this;
         var newVal = "";
         var settingsChanged = [];
+        var idChangedFrom = '';
         for(var i in _self.settings) {
             newVal = _self.gJQ('.widget-settings-form input[name="'+i+'"]').val();
             if(_self.settings[i] != newVal) {
+                // We have to save old id
+                if(i == 'id') {
+                    idChangedFrom = _self.settings[i];
+                }
                 _self.settings[i] = newVal;
                 _self.gJQ('.widget-settings-' + i).html(newVal);
-                settingsChanged.push(i);
+                settingsChanged[i] = newVal;
             }
         }
         _self.gJQ('.widget-settings').popover('hide');
 
         if(settingsChanged.length > 0) {
-            _self.settingsChanged(settingsChanged);
+            _self.settingsChanged(settingsChanged, idChangedFrom);
         }
     };
 
     /***
      * Called when settings has changed, override this in your on widgets
-     * @param settings Array Changed setting ids
+     * @param settings Object Changed values
+     * @param oldId String Old widget id, if it has changed
      */
-    p.settingsChanged = function(settings) {
+    p.settingsChanged = function(settings, oldId) {
         var _self = this;
+
+        // Save widget settings
+        var attributes = {settings: settings};
+        window.site.updateWidgetDesktopStorage(oldId != '' ? oldId : _self.settings.id, attributes);
     };
 
     /***
@@ -184,10 +200,29 @@
         $(window).off('mousemove');
         $(window).off('mouseup');
 
+        // Save current position of widget to desktop
+        _self.position = _self.gJQ().offset();
+        var updateAttributes = {
+            position: _self.position
+        };
+        window.site.updateWidgetDesktopStorage(_self.settings.id, updateAttributes);
+
         // Restore cursor
         _self.gJQ().css('cursor', 'default');
     };
 
+    /***
+     * Override Element.killObject
+     */
+    p.killObject = function() {
+        var _self = this;
+
+        // Remove widget from desktop before killing it...
+        window.site.removeWidgetDesktopStorage(_self.settings.id);
+
+        // Call parent.killObject to finish the job!
+        _self.Element_killObject();
+    };
 
     p.toString = function() {
         return "Widget["+ this._name +"]";

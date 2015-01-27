@@ -18,6 +18,7 @@
         id: "Clock",
         title: "My Clock"
     };
+    p.widget = 'Clock';
 
     p.css = '.clockanalog { background: #012345 url("http://static.joncom.be/screen/images/code/css-clocks/analog.gif") no-repeat 0 0; float: left; height: 250px; margin: 0; overflow: hidden; position: relative; width: 250px; }.clockanalog img { border: 0; left: 0px; position: absolute; top: 0px; }';
 
