@@ -12,6 +12,8 @@
     <ul class="myWidgets">
     </ul>
 
+    <button class="btn btn-danger btn-xs md-trigger" data-modal="modal-clearstorage"><i class="fa fa-trash"></i> Clear localStorage</button>
+
     <ul style="display: block;bottom:0;position: fixed;">
         <li class="md-trigger" data-modal="modal-welcome">Welcome</li>
         <li class="md-trigger" data-modal="modal-details">Technical details</li>
@@ -28,6 +30,7 @@
                     <li><strong>Modify:</strong> existing Widgets to Your needs.</li>
                     <li><strong>Create:</strong> Your own hilarious/or useful Widgets.</li>
                 </ul>
+                <p>Compatibility:</p><ul><li>FireFox: <b>100%</b> - All what's coded, works (Clock starts to run faster after a while!?).</li><li>IE 11: <b>99%</b> - Meny-plugin bugs, and Clock does not move.</li><li>Chrome: <b>60%</b> - CodePanel/Widgets has some issues.</li><li>Other: Not tested.</li></ul>
                 <p>Start by adding widgets to your desktop from the left side menu.</p>
                 <button class="md-close">Let's Go!</button>
             </div>
@@ -47,6 +50,19 @@
                     <li><strong>Code Mirror:</strong> <a href="http://codemirror.net/" target="_empty">http://codemirror.net/</a></li>
                 </ul>
                 <button class="md-close">Great!</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-clearstorage" class="md-modal md-effect-3">
+        <div class="md-content">
+            <button class="md-close pull-right">X</button><h3>Clearing local storage?</h3>
+            <div>
+                <p>This will remove all settings saved by this site to your browsers local storage.</p><p>This includes:</p>
+                <ul>
+                    <li><strong>My widgets:</strong> Clear all custom widgets and reset My widgets to default state.</li>
+                    <li><strong>Desktop:</strong> Remove all widgets from your desktop and return it to the default state.</li>
+                </ul>
+                <button class="md-close modal-clearstorage-ok">Just do it!</button>
             </div>
         </div>
     </div>

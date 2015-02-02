@@ -3,8 +3,8 @@
     /***
      * Minesweep Widget for XevoLve Bind.JS
      *
-     * Minesweep functionality done by D. Shep Poor (http://www.chezpoor.com/minesweeper/minesweeper.html)
-     * Wrapped by Marko Kurjonen 2014
+     * Minesweep graphics from D. Shep Poor (http://www.chezpoor.com/minesweeper/minesweeper.html)
+     * Wrapped and recoded by Marko Kurjonen 2014
      *
      * @constructor
      */

@@ -154,15 +154,42 @@
     p.openEditWidget = function() {
         var _self = this;
 
-        // Create
-        var widgetStorageObject = window.site.getWidgetStorageObject(_self.settings.id);
-        var code = (widgetStorageObject ? widgetStorageObject.code : false);
-        var attributes = {
-            widgetSettings: _self.settings,
-            defaultContent: (code ? code : "Code could not be loaded..")
-        };
+        // Fetch storage object of the widget / or pure code from the server
+        var widgetStorageObject = window.site.getWidgetStorageObject(_self.widget, function (code) {
+            _self.openEditReady(code);
+        });
 
-        window.site.launchWidget(_self.editWidgetId, attributes);
+        if (widgetStorageObject === true) {
+            return;
+        }
+
+        var code = (widgetStorageObject ? widgetStorageObject.code : false);
+
+        _self.openEditReady(code)
+    };
+
+    /**
+     * When source code is ready (loaded/or not)
+     * - Load the CodePanel widget
+     * @param code of the widget
+     */
+    p.openEditReady = function(code){
+        var _self = this;
+
+        // Launch it!
+        window.site.launchWidget(_self.editWidgetId, {}, function(widget) {_self.openEditWidgetSucceeded(widget, code);});
+    };
+
+    /**
+     * CodePanel has been created - update it with content(code)
+     * @param widget
+     */
+    p.openEditWidgetSucceeded = function(widget, code) {
+        var _self = this;
+
+        if(widget) {
+            widget.updateContent(_self.settings, code);
+        }
     };
 
     /***

@@ -11,6 +11,7 @@
     p.contentPath = "data/";
     p.settingsFilename = "bind.json";
     p.widgetsPath = "";
+
     // Default widget settings
     p.widgetSettings = {
         widget: '',
@@ -31,6 +32,17 @@
                 description: 'Initial Clock Widget'
             },
             position: {left:100,top:100}
+        }
+    };
+    p.initialWidgets = {
+        Empty: {
+            widget: 'Empty',
+            settings: {
+                id: 'Empty',
+                title: 'Empty Widget',
+                description: ''
+            },
+            code: '(function() {\n var WidgetEmpty = function () {\nthis.initialize();\n};\nvar p = WidgetEmpty.prototype = new $b.Widget();\np.template = "New empty Widget contents.";\np.Widget_initialize = p.initialize;\np.initialize = function() {\nthis.Widget_initialize();\n};\np.toString = function() {\n    return "WidgetEmpty["+ this._name +"]";\n};\n$b.WidgetEmpty = WidgetEmpty;\n}());\n'
         }
     };
     p.localWidgets = null;
@@ -54,7 +66,6 @@
 
         if(!_self.personalDesktop) {
             _self.personalDesktop = _self.initialDesktop;
-
             _self.storage.set('personalDesktop', _self.personalDesktop);
         }
 
@@ -62,19 +73,9 @@
         _self.localWidgets = _self.storage.get('localWidgets');
 
         if(!_self.localWidgets) {
-            _self.storage.set('localWidgets',{
-                // Temporary 'Startup' widget
-                Empty: {
-                    widget: 'Empty',
-                    settings: {
-                        id: 'Empty',
-                        title: 'Empty Widget',
-                        description: ''
-                    },
-                    code: '(function() {\n var WidgetEmpty = function () {\nthis.initialize();\n};\nvar p = WidgetEmpty.prototype = new $b.Widget();\np.template = "New empty Widget contents.";\np.Widget_initialize = p.initialize;\np.initialize = function() {\nthis.Widget_initialize();\n};\np.toString = function() {\n    return "WidgetEmpty["+ this._name +"]";\n};\n$b.WidgetEmpty = WidgetEmpty;\n}());\n'
-                }
-            });
-            _self.localWidgets = _self.storage.get('localWidgets');
+
+            _self.localWidgets = _self.initialWidgets;
+            _self.storage.set('localWidgets', _self.localWidgets);
         }
 
         // Global events
@@ -90,10 +91,7 @@
 
         _self.widgetsPath = window.site.settings.paths.scripts +'widgets/';
 
-        // get local widgets
-        for(var i in _self.localWidgets) {
-            _self.gJQ('.myWidgets').append('<li class="widget-launch" data-widget="'+i+'">'+i+'</li>');
-        }
+        _self.setupMyWidgets();
 
         // Inits left side menu component
         _self.initMeny();
@@ -112,10 +110,45 @@
         // Menu init
         _self.gJQ('.widget-launch').on('click', function() {_self.launchWidget($(this).data('widget'));});
 
+        // Clear storage - Do it click event
+        _self.gJQ('.modal-clearstorage-ok').on('click', function() {_self.clearStorage();});
+
         // Load desktop
+        _self.setupPersonalDesktop();
+    };
+
+    /**
+     * Creates personal desktop from storage object
+     */
+    p.setupPersonalDesktop = function() {
+        var _self = this;
+        // Remove all Widgets from desktop
+        $('.widget').each(function(){
+            var widget = $b.OM.find($(this).attr('data-name'));
+            if(widget) {
+                widget.killObject();
+            }
+        });
+
+        // Create from object
         for(var w in _self.personalDesktop) {
             _self.launchWidget(_self.personalDesktop[w].widget, _self.personalDesktop[w]);
         }
+    };
+
+    /**
+     * Setups the My Widgets menu items from storage object
+     * - Clear list
+     * - Update from localWidgets
+     */
+    p.setupMyWidgets = function() {
+        var _self = this;
+
+        // get local widgets
+        for(var i in _self.localWidgets) {
+            _self.gJQ('.myWidgets').html('').append('<li class="widget-launch" data-widget="'+i+'">'+i+'</li>');
+        }
+
     };
 
     /***
@@ -125,49 +158,6 @@
     p.openModal = function(modal) {
         var _self = this;
         _self.gJQ('#'+modal).addClass('md-show');
-
-        _self.meny.close();
-    };
-
-    /***
-     * Loads and creates new Widget
-     * - Loads from localStorage if widget exists there
-     * - Other vice tries to load from server
-     * - TODO: Load error handling
-     * @param widget Widget name
-     */
-    p.launchWidget = function(widget, attributes) {
-        var _self = this;
-
-        // Merge widget settings
-        attributes = $.extend(true,{},_self.widgetSettings, attributes);
-
-        // Make sure id is set
-        if(attributes.settings.id == '') {
-            attributes.settings.id = widget +'-'+ Math.floor(Math.random()*1000);
-            attributes.settings.title = widget + 'Widget';
-        }
-
-        var widgetStorageObject = _self.getWidgetStorageObject(widget);
-        if(widgetStorageObject) {
-            // Evaluate the code
-            eval(widgetStorageObject.code);
-            // Append settings to attributes
-            if(!attributes) {
-                attributes = {settings:widgetStorageObject.settings};
-            } else {
-                attributes.settings = widgetStorageObject.settings;
-            }
-
-            _self.createWidget(widget, attributes);
-        } else {
-            var filename = _self.widgetsPath +'widget.' + widget + '.js?'+ new Date().getTime();
-
-            // Make sure the widget is loaded..
-            head.load(filename, function () {
-                _self.createWidget(widget, attributes);
-            });
-        }
 
         _self.meny.close();
     };
@@ -188,20 +178,35 @@
         } else  {
             _self.localWidgets[widgetId] = attributes;
         }
+
+        // Update My widget links
+        _self.setupMyWidgets();
+
         return true;
     };
     /***
      * Retrieves the storage object of the Widget (code and settings)
      * - TODO: Multiple storage options?
-     * @param widget Name of the Widget
+     * @param widget - Name of the Widget
+     * @param callback - Use this if you want to load the script as text!
      */
-    p.getWidgetStorageObject = function(widget) {
+    p.getWidgetStorageObject = function(widget, callback) {
         var _self = this;
+
         if(_self.localWidgets[widget]) {
             return _self.localWidgets[widget];
-        } else if($('#widget-'+widget+'-js').length > 0) {
+
+        } else
+        if($('#widget-'+widget+'-js').length > 0 && typeof callback == "function") {
+
             // It is server side script!
-            // TODO: Fetch server side script for editing!
+            // Load it and call callback
+            $.get(_self.widgetsPath +'widget.' + widget + ".js",
+                function(response){ callback(response); }
+            );
+
+            // Return just true, to notify that the callback will be used when ready...
+            return true;
         }
         return false;
     };
@@ -243,6 +248,75 @@
             return false;
         }
         return delete _self.personalDesktop[widgetId];
+    };
+
+    /**
+     * Resets storage objects to default state
+     */
+    p.clearStorage = function() {
+        var _self = this;
+
+        // Reset personal desktop
+        _self.personalDesktop = _self.initialDesktop;
+        _self.storage.set('personalDesktop', _self.personalDesktop);
+
+        // Reset My widgets
+        _self.localWidgets = _self.initialWidgets;
+        _self.storage.set('localWidgets', _self.localWidgets);
+
+        // Re-setup
+        _self.setupPersonalDesktop();
+        _self.setupMyWidgets();
+    };
+
+
+    /***
+     * Loads and creates new Widget
+     * - Loads from localStorage if widget exists there
+     * - Other vice tries to load from server
+     * - TODO: Load error handling
+     * @param widget Widget name
+     */
+    p.launchWidget = function(widget, attributes, successCallback) {
+        var _self = this;
+
+        // Merge widget settings
+        attributes = $.extend(true,{},_self.widgetSettings, attributes);
+
+        // Make sure id is set
+        if(attributes.settings.id == '') {
+            attributes.settings.id = widget +'-'+ Math.floor(Math.random()*1000);
+            attributes.settings.title = widget + 'Widget';
+        }
+
+        var widgetStorageObject = _self.getWidgetStorageObject(widget);
+        if(widgetStorageObject) {
+            // Evaluate the code
+            eval(widgetStorageObject.code);
+            // Append settings to attributes
+            if(!attributes) {
+                attributes = {settings:widgetStorageObject.settings};
+            } else {
+                attributes.settings = widgetStorageObject.settings;
+            }
+
+            var newWidget = _self.createWidget(widget, attributes);
+            if(typeof successCallback == "function") {
+                successCallback(newWidget);
+            }
+        } else {
+            var filename = _self.widgetsPath +'widget.' + widget + '.js?'+ new Date().getTime();
+
+            // Make sure the widget is loaded..
+            head.load(filename, function () {
+                var newWidget = _self.createWidget(widget, attributes);
+                if(typeof successCallback == "function") {
+                    successCallback(newWidget);
+                }
+            });
+        }
+
+        _self.meny.close();
     };
 
     /***

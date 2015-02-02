@@ -36,7 +36,7 @@
         $(this).off("objectCreated");
 
         $(this).on("objectCreated", function () {
-            head.load([
+            head.load([window.site.settings.paths.scripts +"codemirror.js",
                 window.site.settings.paths.scripts +"codemirror.javascript.js"],
                 function(){_self.elementCreated();});
         });
@@ -105,6 +105,13 @@
             _self.saveCodeSettings();
             return false;
         });
+    };
+
+    p.updateContent = function(settings, code) {
+        var _self = this;
+
+        _self.widgetSettings = settings;
+        _self.editor.setValue(code);
     };
 
     // Toolbar button events
@@ -187,7 +194,7 @@
             position: {}
         };
 
-        if(objectExists != null) {
+        if(objectExists) {
             // If exists, save position
             attributes.position = objectExists.position;
 
